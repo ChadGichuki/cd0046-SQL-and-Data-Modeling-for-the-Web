@@ -95,17 +95,13 @@ def venues():
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
   # search on venues with partial string search. Is case-insensitive.
-  response={
-    "count": 1,
-    "data": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }
+  
   search_term = request.form.get('search_term', '')
   search = "%{}%".format(search_term)
-  response = Venue.query.filter(Venue.name.like(search)).all()
+  response = {
+    "count": Venue.query.filter(Venue.name.ilike(search)).count(),
+    "data": Venue.query.filter(Venue.name.ilike(search)).all()
+  }
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
 @app.route('/venues/<int:venue_id>')
@@ -189,7 +185,9 @@ def create_venue_submission():
       finally:
         return redirect(url_for('index'))
       
-  else: 
+  else:
+      for field, error in form.errors.items():
+        flash(f'An error occured ({error}). Please check the following field: {field}.')
       return render_template('forms/new_venue.html', form=form)
 
 @app.route('/venues/<venue_id>/delete', methods=['GET','DELETE'])
@@ -232,7 +230,7 @@ def search_artists():
   }
   search_term = request.form.get('search_term', '')
   search = "%{}%".format(search_term)
-  response = Artist.query.filter(Artist.name.like(search.lower() or search.upper() or search.title()))
+  response = Artist.query.filter(Artist.name.ilike(search))
   response = {'data': response.order_by(Artist.name).all(), 'count': response.count()}
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
@@ -404,6 +402,8 @@ def create_artist_submission():
       finally:
         return redirect(url_for('index'))
   else:
+    for field, error in form.errors.items():
+        flash(f'An error occured ({error}). Please check the following field: {field}.')
     return render_template('forms/new_artist.html', form=form)
 
 #  Shows
